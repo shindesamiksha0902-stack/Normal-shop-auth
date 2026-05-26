@@ -6,8 +6,8 @@ import { useState } from 'react';
 
 export default function LoginPage() {
   const router = useRouter();
-  const params = useSearchParams();
-  const nextUrl = params.get('next') || '/checkout';
+  const searchParams = useSearchParams();
+  const nextUrl = searchParams.get('next') || '/';
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -17,28 +17,39 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
 
-    const form = new FormData(event.currentTarget);
-    const payload = {
-      email: form.get('email'),
-      password: form.get('password'),
-    };
+    try {
+      const form = new FormData(event.currentTarget);
 
-    const response = await fetch('/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: form.get('email'),
+          password: form.get('password'),
+        }),
+      });
 
-    const data = await response.json();
+      let data = {};
+      try {
+        data = await response.json();
+      } catch {
+        data = {};
+      }
 
-    if (!response.ok) {
-      setError(data.message || 'Login failed');
+      if (!response.ok) {
+        setError(data.message || 'Login failed');
+        return;
+      }
+
+      router.replace(nextUrl);
+      router.refresh();
+    } catch {
+      setError('Something went wrong. Check the server.');
+    } finally {
       setLoading(false);
-      return;
     }
-
-    router.replace(nextUrl);
-    router.refresh();
   }
 
   return (
@@ -50,12 +61,24 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label htmlFor="email">Email</label>
-            <input id="email" name="email" type="email" placeholder="you@example.com" required />
+            <input
+              id="email"
+              name="email"
+              type="email"
+              placeholder="you@example.com"
+              required
+            />
           </div>
 
           <div className="form-group">
             <label htmlFor="password">Password</label>
-            <input id="password" name="password" type="password" placeholder="••••••••" required />
+            <input
+              id="password"
+              name="password"
+              type="password"
+              placeholder="••••••••"
+              required
+            />
           </div>
 
           {error ? <div className="error">{error}</div> : null}
@@ -64,11 +87,13 @@ export default function LoginPage() {
             <button className="button button-primary" type="submit" disabled={loading}>
               {loading ? 'Logging in...' : 'Login'}
             </button>
+
+            <Link className="button button-secondary" href="/forgot-password">
+              Forgot password?
+            </Link>
+
             <Link className="button button-secondary" href="/register">
               Create account
-            </Link>
-            <Link className="button button-secondary" href="/">
-              Back home
             </Link>
           </div>
         </form>
